@@ -19,7 +19,7 @@ API_KEY = os.getenv("SMALLEST_API_KEY")
 SAMPLE_RATE = 44100
 TRANSCRIPT_FILE = os.path.join(os.path.dirname(__file__), "transcripts.json")
 
-LANGUAGES = {"e": "en", "s": "es"}
+LANGUAGE = "multi"
 
 
 def find_input_device():
@@ -72,6 +72,7 @@ async def transcribe(pcm_data, language):
     ws_url = f"wss://api.smallest.ai/waves/v1/pulse/get_text?{urlencode(params)}"
 
     transcript = ""
+    detected_lang = language
     async with websockets.connect(
         ws_url,
         additional_headers={"Authorization": f"Bearer {API_KEY}"},
@@ -87,6 +88,8 @@ async def transcribe(pcm_data, language):
                 msg = await asyncio.wait_for(ws.recv(), timeout=15)
                 data = json.loads(msg)
                 text = data.get("transcript", "").strip()
+                if data.get("language"):
+                    detected_lang = data["language"]
                 if data.get("is_final") and text:
                     transcript = data.get("full_transcript", text)
                 if data.get("is_last"):
@@ -96,7 +99,7 @@ async def transcribe(pcm_data, language):
         except websockets.exceptions.ConnectionClosed:
             pass
 
-    return transcript
+    return transcript, detected_lang
 
 
 def save_transcript(text, language, duration):
@@ -162,12 +165,12 @@ async def record_once(mic_idx, language):
         return
 
     print("Transcribing...")
-    transcript = await transcribe(pcm_data, language)
+    transcript, detected_lang = await transcribe(pcm_data, language)
 
     if transcript:
-        count = save_transcript(transcript, language, duration)
-        print(f"\n>>> {transcript}")
-        print(f"    (saved to {TRANSCRIPT_FILE} — {count} entries total)\n")
+        count = save_transcript(transcript, detected_lang, duration)
+        print(f"\n>>> [{detected_lang}] {transcript}")
+        print(f"    (saved — {count} entries total)\n")
     else:
         print("\nNo speech detected.\n")
 
@@ -184,18 +187,10 @@ async def main():
     mic_name = sd.query_devices(mic_idx)['name']
     print(f"Mic: {mic_name} @ {SAMPLE_RATE}Hz")
 
-    print("\nSelect language:  [e] English  [s] Spanish")
-    while True:
-        ch = get_key()
-        if ch in LANGUAGES:
-            language = LANGUAGES[ch]
-            break
-        if ch in ("\x03", "q"):
-            sys.exit(0)
-    print(f"Language: {language}")
+    print(f"Language: auto-detect (English + Spanish)\n")
 
     while True:
-        await record_once(mic_idx, language)
+        await record_once(mic_idx, LANGUAGE)
         print("--- Press [r] to record again, [q] to quit ---")
         while True:
             ch = get_key()

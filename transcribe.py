@@ -19,7 +19,7 @@ API_KEY = os.getenv("SMALLEST_API_KEY")
 SAMPLE_RATE = 44100
 TRANSCRIPT_FILE = os.path.join(os.path.dirname(__file__), "transcripts.json")
 
-LANGUAGE = "multi"
+LANGUAGES = {"e": "en", "s": "es"}
 
 
 def find_input_device():
@@ -207,18 +207,19 @@ async def main():
     mic_name = sd.query_devices(mic_idx)['name']
     print(f"Mic: {mic_name} @ {SAMPLE_RATE}Hz")
 
-    print(f"Language: auto-detect (English + Spanish)\n")
-
     while True:
-        await record_once(mic_idx, LANGUAGE)
-        print("--- Press [r] to record again, [q] to quit ---")
+        print("\nLanguage: [e] English  [s] Spanish")
         while True:
             ch = get_key()
-            if ch == "r":
+            if ch in LANGUAGES:
+                language = LANGUAGES[ch]
                 break
             if ch in ("\x03", "q"):
                 print("\nDone.")
                 return
+        print(f"  -> {language}")
+        await record_once(mic_idx, language)
+        print("--- Record again or quit? (loops back to language select) ---")
 
 
 if __name__ == "__main__":

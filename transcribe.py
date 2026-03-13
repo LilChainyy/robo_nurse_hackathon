@@ -103,13 +103,19 @@ async def run():
 
     print(f"Connecting to smallest.ai ({WS_PARAMS['language']} mode)...")
     print(f"Sample rate: {SAMPLE_RATE} Hz")
-    print("Speak into the microphone. Press Ctrl+C to stop.\n")
+    input("Press Enter to start recording... ")
+    print("\nRecording. Speak now. Press Enter when done.\n")
 
     try:
         async with websockets.connect(WS_URL, additional_headers=headers) as ws:
             print("Connected to smallest.ai STT WebSocket.\n")
 
             stop = asyncio.Event()
+
+            async def wait_for_enter():
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, lambda: input())
+                stop.set()
 
             async def send_audio():
                 loop = asyncio.get_event_loop()
@@ -175,8 +181,9 @@ async def run():
 
             sender = asyncio.create_task(send_audio())
             receiver = asyncio.create_task(receive_transcripts())
+            enter_waiter = asyncio.create_task(wait_for_enter())
 
-            await asyncio.gather(sender, receiver)
+            await asyncio.gather(sender, receiver, enter_waiter)
 
     except websockets.ConnectionClosed as e:
         print(f"\nConnection closed: {e.code} - {e.reason}")

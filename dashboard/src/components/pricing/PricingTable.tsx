@@ -11,6 +11,14 @@ interface PricingResult {
   distance?: string;
   available: boolean;
   mapLink?: string;
+  phoneNumber?: string;
+  openingHours?: string;
+  prescriptionRequired?: boolean;
+  genericAlternative?: string;
+  genericPrice?: string;
+  deliveryAvailable?: boolean;
+  pharmacyType?: string;
+  dosageMatch?: string;
 }
 
 interface PricingTableProps {

@@ -40,6 +40,7 @@ export interface Session {
   allergies: string[];
   currentMedications: string[];
   mentalHealthFlags: string[];
+  zipcode?: string;
   urgencyLevel: "low" | "medium" | "high" | "critical";
   relayTranscript: RelayMessage[];
   startedAt: string;
@@ -55,6 +56,14 @@ export interface MedicinePrice {
   distance?: string;
   available: boolean;
   mapLink?: string;
+  phoneNumber?: string;
+  openingHours?: string;
+  prescriptionRequired?: boolean;
+  genericAlternative?: string;
+  genericPrice?: string;
+  deliveryAvailable?: boolean;
+  pharmacyType?: string;
+  dosageMatch?: string;
 }
 
 export interface Prescription {
@@ -142,7 +151,14 @@ export const sessions: Session[] = [
         answerNative:
           "Tomo ibuprofeno a veces para el dolor de cabeza, y tomo vitamina D diariamente.",
       },
+      {
+        question: "What is your zipcode or postal code?",
+        questionNative: "¿Cuál es su código postal?",
+        answer: "44100",
+        answerNative: "44100",
+      },
     ],
+    zipcode: "44100",
     clinicalSummary:
       "CHIEF COMPLAINT: Persistent headache (3 days) with morning nausea (1 day)\n\nHISTORY: Patient reports a 3-day history of severe headache localized behind the eyes, with associated morning nausea beginning yesterday. No history of trauma or recent illness reported.\n\nPAIN LEVEL: 7/10\n\nALLERGIES: Penicillin (causes rash)\n\nCURRENT MEDICATIONS: Ibuprofen (PRN for headache), Vitamin D (daily)\n\nNOTES: Retroorbital headache pattern with nausea may suggest migraine, tension headache, or elevated intracranial pressure. Consider neurological exam and further workup if symptoms persist.",
     symptoms: [
@@ -155,7 +171,44 @@ export const sessions: Session[] = [
     currentMedications: ["Ibuprofen (PRN)", "Vitamin D (daily)"],
     mentalHealthFlags: [],
     urgencyLevel: "medium",
-    relayTranscript: [],
+    relayTranscript: [
+      {
+        speaker: "doctor",
+        textOriginal: "Maria, can you describe the headache — is it throbbing or constant pressure?",
+        textTranslated: "Maria, ¿puede describir el dolor de cabeza — es pulsátil o presión constante?",
+        timestamp: new Date(Date.now() - 500000).toISOString(),
+      },
+      {
+        speaker: "patient",
+        textOriginal: "Es pulsátil, sobre todo detrás de los ojos, y empeora con la luz.",
+        textTranslated: "It is throbbing, especially behind the eyes, and it gets worse with light.",
+        timestamp: new Date(Date.now() - 480000).toISOString(),
+      },
+      {
+        speaker: "doctor",
+        textOriginal: "Does the nausea happen only in the morning or throughout the day?",
+        textTranslated: "¿Las náuseas ocurren solo en la mañana o durante todo el día?",
+        timestamp: new Date(Date.now() - 460000).toISOString(),
+      },
+      {
+        speaker: "patient",
+        textOriginal: "Solo en la mañana, cuando me levanto. Después se calma un poco.",
+        textTranslated: "Only in the morning, when I get up. Then it calms down a bit.",
+        timestamp: new Date(Date.now() - 440000).toISOString(),
+      },
+      {
+        speaker: "doctor",
+        textOriginal: "Have you had migraines before, or is this a new type of headache for you?",
+        textTranslated: "¿Ha tenido migrañas antes, o este es un tipo nuevo de dolor de cabeza para usted?",
+        timestamp: new Date(Date.now() - 420000).toISOString(),
+      },
+      {
+        speaker: "patient",
+        textOriginal: "Nunca he tenido migrañas. Este dolor es diferente a cualquier dolor de cabeza que he tenido.",
+        textTranslated: "I have never had migraines. This pain is different from any headache I have had.",
+        timestamp: new Date(Date.now() - 400000).toISOString(),
+      },
+    ],
     startedAt: new Date(Date.now() - 1200000).toISOString(),
     completedAt: new Date(Date.now() - 600000).toISOString(),
   },

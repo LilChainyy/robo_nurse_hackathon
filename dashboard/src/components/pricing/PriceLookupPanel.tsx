@@ -1,23 +1,33 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Loader2, MapPin } from "lucide-react";
+import { Search, Loader2, MapPin, Hash } from "lucide-react";
 import PricingTable from "./PricingTable";
 
 interface PriceLookupPanelProps {
   prescription: any;
+  intakeSession?: any;
   noteConfirmed: boolean;
   onLookupComplete: () => void;
 }
 
 export default function PriceLookupPanel({
   prescription,
+  intakeSession,
   noteConfirmed,
   onLookupComplete,
 }: PriceLookupPanelProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<any[]>(prescription?.priceLookupResults || []);
+  const [zipcode, setZipcode] = useState("");
   const [country, setCountry] = useState("Mexico");
+
+  // Auto-populate zipcode from patient intake
+  useEffect(() => {
+    if (intakeSession?.zipcode && !zipcode) {
+      setZipcode(intakeSession.zipcode);
+    }
+  }, [intakeSession?.zipcode]);
 
   const handleLookup = async () => {
     if (!prescription?.prescribedMedications?.length) return;
@@ -29,6 +39,7 @@ export default function PriceLookupPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           medicines: prescription.prescribedMedications,
+          zipcode,
           country,
           prescriptionId: prescription._id,
         }),
@@ -64,8 +75,18 @@ export default function PriceLookupPanel({
     <div className="flex flex-col h-full gap-3">
       {/* Controls */}
       <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <Hash className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <input
+            type="text"
+            value={zipcode}
+            onChange={(e) => setZipcode(e.target.value)}
+            placeholder="Zipcode"
+            className="w-28 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
         <div className="flex items-center gap-1.5 flex-1">
-          <MapPin className="h-4 w-4 text-gray-400" />
+          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
           <input
             type="text"
             value={country}
@@ -106,11 +127,12 @@ export default function PriceLookupPanel({
         ) : isSearching ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
             <Loader2 className="h-6 w-6 animate-spin" />
-            <p className="text-sm">Searching pharmacies...</p>
+            <p className="text-sm">Searching nearby pharmacies...</p>
+            <p className="text-xs text-gray-300">Checking prices, generics, availability & hours</p>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
-            <p className="text-sm">Click &quot;Look Up Prices&quot; to search pharmacy availability</p>
+            <p className="text-sm">Enter zipcode and click &quot;Look Up Prices&quot; to search nearby pharmacies</p>
           </div>
         )}
       </div>

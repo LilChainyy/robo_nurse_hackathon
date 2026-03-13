@@ -4,7 +4,6 @@ import json
 import tty
 import termios
 import asyncio
-import struct
 import threading
 from datetime import datetime
 from urllib.parse import urlencode
@@ -161,14 +160,14 @@ async def run():
 
     def audio_callback(indata, frames, time_info, status):
         if is_recording:
-            audio_buffer.append(indata.copy())
+            audio_buffer.append(bytes(indata))
 
     stream = sd.InputStream(
         samplerate=mic_rate,
         channels=CHANNELS,
         blocksize=block_size,
         device=mic_index,
-        dtype="float32",
+        dtype="int16",
         callback=audio_callback,
     )
     stream.start()
@@ -199,14 +198,10 @@ async def run():
         print("No audio captured.")
         return
 
-    # Convert float32 [-1,1] chunks to int16 PCM bytes
-    pcm_frames = []
-    for chunk in audio_buffer:
-        for sample in chunk.flatten():
-            val = max(-32768, min(32767, int(sample * 32767)))
-            pcm_frames.append(struct.pack("<h", val))
+    # Already recorded as int16 PCM — just concatenate the raw bytes
+    pcm_data = b"".join(audio_buffer)
     audio_buffer.clear()
-    pcm_data = b"".join(pcm_frames)
+    print(f"Audio: {len(pcm_data)} bytes ({duration:.1f}s at {mic_rate} Hz)")
 
     # Stream to smallest.ai
     print("Sending audio to smallest.ai...\n")

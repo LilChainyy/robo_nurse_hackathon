@@ -103,12 +103,12 @@ async def transcribe(pcm_data, language):
                     print(f"[API] msg#{msg_count}: is_final={is_final} is_last={is_last} lang={lang} text={repr(text[:80])}")
                     if lang:
                         detected_lang = lang
-                    if is_final and text:
+                    if text:
                         transcript = data.get("full_transcript", text)
                     if is_last:
                         break
             except asyncio.TimeoutError:
-                print(f"[API] TIMEOUT after {msg_count} messages")
+                print(f"[API] TIMEOUT after {msg_count} messages (using best transcript so far)")
             except websockets.exceptions.ConnectionClosed as e:
                 print(f"[API] CONNECTION CLOSED: {e}")
 

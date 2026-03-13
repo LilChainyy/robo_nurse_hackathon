@@ -78,25 +78,34 @@ async def main():
 
     # Step 3: Send to smallest.ai and get transcription
     print("Transcribing...")
+    print(f"  API key: {API_KEY[:8]}...{API_KEY[-4:]}" if API_KEY else "  API key: MISSING!")
 
     ws_url = f"wss://api.smallest.ai/waves/v1/lightning/get_text?{urlencode({
         'language': 'multi',
         'encoding': 'linear16',
         'sample_rate': str(SAMPLE_RATE),
     })}"
+    print(f"  URL: {ws_url}")
+    print(f"  Audio: {len(pcm_data)} bytes")
 
     transcript = ""
 
+    print("  Connecting to WebSocket...")
     async with websockets.connect(ws_url, additional_headers={"Authorization": f"Bearer {API_KEY}"}) as ws:
-        # Send all audio
+        print("  Connected!")
+
+        chunks = 0
         for i in range(0, len(pcm_data), 4096):
             await ws.send(pcm_data[i:i+4096])
-        await ws.send(json.dumps({"type": "finalize"}))
+            chunks += 1
+        print(f"  Sent {chunks} audio chunks.")
 
-        # Wait for result
+        await ws.send(json.dumps({"type": "finalize"}))
+        print("  Sent finalize. Waiting for response...")
+
         async for msg in ws:
+            print(f"  [API] {msg[:200]}")
             data = json.loads(msg)
-            print(f"  [API] {json.dumps(data)}")
             text = data.get("transcript", "").strip()
             if data.get("is_final") and text:
                 transcript = data.get("full_transcript", text)

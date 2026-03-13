@@ -16,11 +16,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Suppress ALSA/JACK error messages on Linux
+_alsa_error_handler = None
 try:
+    _ERROR_HANDLER_FUNC = ctypes.CFUNCTYPE(None, ctypes.c_char_p, ctypes.c_int,
+                                            ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p)
+    _alsa_error_handler = _ERROR_HANDLER_FUNC(lambda *_: None)
     asound = ctypes.cdll.LoadLibrary("libasound.so.2")
-    c_error_handler = ctypes.CFUNCTYPE(None, ctypes.c_char_p, ctypes.c_int,
-                                        ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p)
-    asound.snd_lib_error_set_handler(c_error_handler(lambda *_: None))
+    asound.snd_lib_error_set_handler(_alsa_error_handler)
 except OSError:
     pass
 

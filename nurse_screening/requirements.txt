@@ -1,0 +1,14 @@
+anthropic
+pymongo
+fastapi
+uvicorn[standard]
+python-multipart
+openai
+deepl
+opencv-python
+pyaudio
+easyocr
+scrapegraph-py
+requests
+python-dotenv
+numpy

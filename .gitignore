@@ -3,3 +3,9 @@ __pycache__/
 *.pyc
 transcripts/
 venv/
+*.pyo
+.DS_Store
+/tmp/
+*.wav
+*.mp3
+*.jpg

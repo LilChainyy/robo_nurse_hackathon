@@ -70,35 +70,52 @@ async def transcribe(pcm_data, language):
         'sample_rate': str(SAMPLE_RATE),
     }
     ws_url = f"wss://api.smallest.ai/waves/v1/pulse/get_text?{urlencode(params)}"
+    print(f"[API] URL: {ws_url}")
 
     transcript = ""
     detected_lang = language
-    async with websockets.connect(
-        ws_url,
-        additional_headers={"Authorization": f"Bearer {API_KEY}"},
-    ) as ws:
-        for i in range(0, len(pcm_data), 4096):
-            await ws.send(pcm_data[i:i+4096])
-            await asyncio.sleep(0.05)
+    try:
+        async with websockets.connect(
+            ws_url,
+            additional_headers={"Authorization": f"Bearer {API_KEY}"},
+        ) as ws:
+            print(f"[API] Connected")
 
-        await ws.send(json.dumps({"type": "finalize"}))
+            n_chunks = (len(pcm_data) + 4095) // 4096
+            for idx, i in enumerate(range(0, len(pcm_data), 4096)):
+                await ws.send(pcm_data[i:i+4096])
+                await asyncio.sleep(0.05)
+            print(f"[API] Sent {n_chunks} chunks")
 
-        try:
-            while True:
-                msg = await asyncio.wait_for(ws.recv(), timeout=15)
-                data = json.loads(msg)
-                text = data.get("transcript", "").strip()
-                if data.get("language"):
-                    detected_lang = data["language"]
-                if data.get("is_final") and text:
-                    transcript = data.get("full_transcript", text)
-                if data.get("is_last"):
-                    break
-        except asyncio.TimeoutError:
-            pass
-        except websockets.exceptions.ConnectionClosed:
-            pass
+            await ws.send(json.dumps({"type": "finalize"}))
+            print(f"[API] Sent finalize, waiting for response...")
 
+            msg_count = 0
+            try:
+                while True:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=15)
+                    msg_count += 1
+                    data = json.loads(msg)
+                    text = data.get("transcript", "").strip()
+                    is_final = data.get("is_final", False)
+                    is_last = data.get("is_last", False)
+                    lang = data.get("language", "")
+                    print(f"[API] msg#{msg_count}: is_final={is_final} is_last={is_last} lang={lang} text={repr(text[:80])}")
+                    if lang:
+                        detected_lang = lang
+                    if is_final and text:
+                        transcript = data.get("full_transcript", text)
+                    if is_last:
+                        break
+            except asyncio.TimeoutError:
+                print(f"[API] TIMEOUT after {msg_count} messages")
+            except websockets.exceptions.ConnectionClosed as e:
+                print(f"[API] CONNECTION CLOSED: {e}")
+
+    except Exception as e:
+        print(f"[API] ERROR: {type(e).__name__}: {e}")
+
+    print(f"[API] Done. transcript={repr(transcript[:100]) if transcript else 'EMPTY'}")
     return transcript, detected_lang
 
 
@@ -152,19 +169,22 @@ async def record_once(mic_idx, language):
 
     pcm_data = b"".join(audio_chunks)
     duration = len(pcm_data) / (SAMPLE_RATE * 2)
-    print(f"Recorded {duration:.1f}s of audio.")
+    print(f"[MIC] Recorded {duration:.1f}s of audio ({len(pcm_data)} bytes, {len(audio_chunks)} chunks)")
 
     if not pcm_data:
-        print("No audio captured.")
+        print("[MIC] No audio captured.")
         return
 
     samples = np.frombuffer(pcm_data, dtype=np.int16)
     peak = int(np.max(np.abs(samples)))
+    rms = int(np.sqrt(np.mean(samples.astype(np.float64) ** 2)))
+    print(f"[MIC] peak={peak}/32767  rms={rms}  samples={len(samples)}")
     if peak < 100:
-        print("Audio is nearly silent — mic may not be working.")
+        print("[MIC] WARNING: Audio is nearly silent — mic may not be working.")
         return
+    print(f"[MIC] Audio OK")
 
-    print("Transcribing...")
+    print(f"[API] Connecting to smallest.ai...")
     transcript, detected_lang = await transcribe(pcm_data, language)
 
     if transcript:

@@ -4,6 +4,8 @@ import json
 import tty
 import termios
 import struct
+import time
+import logging
 import threading
 from urllib.parse import urlencode
 
@@ -11,6 +13,8 @@ import sounddevice as sd
 import websockets
 import asyncio
 from dotenv import load_dotenv
+
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 load_dotenv()
 
@@ -77,54 +81,95 @@ async def main():
         return
 
     # Step 3: Send to smallest.ai and get transcription
-    print("Transcribing...")
-    print(f"  API key: {API_KEY[:8]}...{API_KEY[-4:]}" if API_KEY else "  API key: MISSING!")
+    print("=" * 60)
+    print("TRANSCRIPTION PIPELINE")
+    print("=" * 60)
+    print(f"  API key      : {API_KEY[:8]}...{API_KEY[-4:]}" if API_KEY else "  API key: MISSING!")
+    print(f"  Sample rate  : {SAMPLE_RATE}")
+    print(f"  Audio bytes  : {len(pcm_data)}")
+    print(f"  Duration     : {duration:.2f}s")
+    print(f"  First 20 bytes (hex): {pcm_data[:20].hex()}")
 
     ws_url = f"wss://api.smallest.ai/waves/v1/pulse/get_text?{urlencode({
         'language': 'en',
         'encoding': 'linear16',
         'sample_rate': str(SAMPLE_RATE),
     })}"
-    print(f"  URL: {ws_url}")
-    print(f"  Audio: {len(pcm_data)} bytes")
+    print(f"  URL          : {ws_url}")
 
     transcript = ""
 
-    print("  Connecting to WebSocket...")
-    async with websockets.connect(ws_url, additional_headers={"Authorization": f"Bearer {API_KEY}"}) as ws:
-        print("  Connected!")
+    try:
+        t0 = time.time()
+        print(f"\n[{time.time()-t0:.3f}s] Connecting to WebSocket...")
+        async with websockets.connect(
+            ws_url,
+            additional_headers={"Authorization": f"Bearer {API_KEY}"},
+            ping_interval=20,
+            ping_timeout=20,
+            close_timeout=10,
+        ) as ws:
+            print(f"[{time.time()-t0:.3f}s] Connected! ws.open={ws.open}")
 
-        chunks = 0
-        for i in range(0, len(pcm_data), 4096):
-            await ws.send(pcm_data[i:i+4096])
-            chunks += 1
-        print(f"  Sent {chunks} audio chunks.")
+            total_chunks = (len(pcm_data) + 4095) // 4096
+            print(f"[{time.time()-t0:.3f}s] Sending {total_chunks} chunks of 4096 bytes with 50ms pacing...")
+            for idx, i in enumerate(range(0, len(pcm_data), 4096)):
+                chunk = pcm_data[i:i+4096]
+                await ws.send(chunk)
+                if idx % 10 == 0:
+                    print(f"  chunk {idx+1}/{total_chunks} ({len(chunk)} bytes)")
+                await asyncio.sleep(0.05)
+            print(f"[{time.time()-t0:.3f}s] All {total_chunks} chunks sent.")
 
-        await ws.send(json.dumps({"type": "finalize"}))
-        print("  Sent finalize. Waiting for response...")
+            finalize_msg = json.dumps({"type": "finalize"})
+            print(f"[{time.time()-t0:.3f}s] Sending finalize: {finalize_msg}")
+            await ws.send(finalize_msg)
+            print(f"[{time.time()-t0:.3f}s] Finalize sent. Listening for responses...")
 
-        try:
-            while True:
-                msg = await asyncio.wait_for(ws.recv(), timeout=10)
-                print(f"  [API] {msg[:200]}")
-                data = json.loads(msg)
-                text = data.get("transcript", "").strip()
-                if data.get("is_final") and text:
-                    transcript = data.get("full_transcript", text)
-                if data.get("is_last"):
-                    break
-        except asyncio.TimeoutError:
-            print("  Timed out waiting for response (10s).")
-        except websockets.exceptions.ConnectionClosed as e:
-            print(f"  Connection closed: {e}")
+            msg_count = 0
+            try:
+                while True:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=15)
+                    msg_count += 1
+                    elapsed = time.time() - t0
+                    print(f"[{elapsed:.3f}s] MSG #{msg_count}: {msg[:500]}")
+                    try:
+                        data = json.loads(msg)
+                        print(f"  Keys: {list(data.keys())}")
+                        print(f"  transcript  : {repr(data.get('transcript', ''))}")
+                        print(f"  is_final    : {data.get('is_final')}")
+                        print(f"  is_last     : {data.get('is_last')}")
+                        print(f"  session_id  : {data.get('session_id')}")
+                        if 'error' in data:
+                            print(f"  ERROR       : {data['error']}")
+                        text = data.get("transcript", "").strip()
+                        if data.get("is_final") and text:
+                            transcript = data.get("full_transcript", text)
+                        if data.get("is_last"):
+                            print(f"[{elapsed:.3f}s] Got is_last, breaking.")
+                            break
+                    except json.JSONDecodeError:
+                        print(f"  (not JSON)")
+            except asyncio.TimeoutError:
+                print(f"[{time.time()-t0:.3f}s] TIMEOUT: No message received for 15s. Got {msg_count} messages total.")
+            except websockets.exceptions.ConnectionClosed as e:
+                print(f"[{time.time()-t0:.3f}s] CONNECTION CLOSED: code={e.code} reason={e.reason}")
+            except Exception as e:
+                print(f"[{time.time()-t0:.3f}s] UNEXPECTED ERROR: {type(e).__name__}: {e}")
 
-    # Step 4: Print result
+    except websockets.exceptions.InvalidStatusCode as e:
+        print(f"WS connection rejected: HTTP {e.status_code}")
+    except Exception as e:
+        print(f"FATAL ERROR: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+
+    print("=" * 60)
     if transcript:
-        print(f"\n=== TRANSCRIPTION ===")
-        print(transcript)
-        print(f"=====================\n")
+        print(f"TRANSCRIPTION: {transcript}")
     else:
-        print("No speech detected.\n")
+        print("No speech detected.")
+    print("=" * 60)
 
 
 if __name__ == "__main__":

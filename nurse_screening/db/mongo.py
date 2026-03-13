@@ -18,6 +18,7 @@ Document schema:
     pain_level          int       — patient-reported (1–10)
     allergies           [str]
     current_medications [str]
+    zipcode             str       — patient's zipcode/postal code for pharmacy lookup
     severity_score      int       — clinical risk score (1–10), GPT-4o assessed
     risk_level          str       — "low" | "medium" | "high" | "critical"
 
@@ -93,6 +94,7 @@ def save_patient_session(
         "pain_level":           structured.get("pain_level", 0),
         "allergies":            structured.get("allergies", []),
         "current_medications":  structured.get("current_medications", []),
+        "zipcode":              structured.get("zipcode", ""),
         "severity_score":       structured.get("severity_score", 0),
         "risk_level":           structured.get("risk_level", "unknown"),
 

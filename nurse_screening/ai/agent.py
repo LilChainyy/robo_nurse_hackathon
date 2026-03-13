@@ -38,6 +38,7 @@ Your goals — gather the following, in any order that feels natural:
 - Severity of pain or discomfort (ask them to rate 1–10)
 - Any known medication allergies
 - Any medications or supplements they are currently taking
+- Their zipcode or postal code (needed so the doctor can look up nearby pharmacy prices)
 
 Guidelines:
 - Ask ONE question at a time.
@@ -198,6 +199,7 @@ def extract_structured_data(english_log: list[dict]) -> dict:
                     '  "pain_level": 0,\n'
                     '  "allergies": ["string"],\n'
                     '  "current_medications": ["string"],\n'
+                    '  "zipcode": "string",\n'
                     '  "severity_score": 0,\n'
                     '  "risk_level": "low|medium|high|critical"\n'
                     "}\n\n"
@@ -225,6 +227,7 @@ def extract_structured_data(english_log: list[dict]) -> dict:
             "pain_level": 0,
             "allergies": [],
             "current_medications": [],
+            "zipcode": "",
             "severity_score": 0,
             "risk_level": "unknown",
         }

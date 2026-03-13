@@ -3,17 +3,18 @@ import { updatePrescription, type MedicinePrice } from "@/lib/dummy-data";
 import { lookupMedicinePrice } from "@/lib/scrapegraph";
 
 export async function POST(request: NextRequest) {
-  const { medicines, country, prescriptionId } = await request.json();
+  const { medicines, zipcode, country, prescriptionId } = await request.json();
 
   if (!medicines || !Array.isArray(medicines) || medicines.length === 0) {
     return NextResponse.json({ error: "medicines array is required" }, { status: 400 });
   }
 
+  const targetZipcode = zipcode || "";
   const targetCountry = country || "USA";
 
   // Look up all medicines in parallel
   const results = await Promise.allSettled(
-    medicines.map((med: string) => lookupMedicinePrice(med, targetCountry))
+    medicines.map((med: string) => lookupMedicinePrice(med, targetZipcode, targetCountry))
   );
 
   const allResults: MedicinePrice[] = results.flatMap((r) =>

@@ -9,7 +9,7 @@ interface DoctorNotePanelProps {
   intakeSession: any;
   relaySession: any;
   prescription: any;
-  onStatusChange: (status: "draft" | "confirmed") => void;
+  onStatusChange: () => void;
 }
 
 export default function DoctorNotePanel({
@@ -45,11 +45,16 @@ export default function DoctorNotePanel({
         body: JSON.stringify({ patientId: patient._id }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        console.error("Generate note error:", data.error);
+        alert(`Failed to generate note: ${data.error || "Unknown error"}`);
+        return;
+      }
       if (data.prescription) {
         setNoteText(data.prescription.fullNoteText || "");
         setPrescriptionId(data.prescription._id);
         setIsConfirmed(false);
-        onStatusChange("draft");
+        onStatusChange();
       }
     } catch (err) {
       console.error("Failed to generate note:", err);
@@ -86,7 +91,7 @@ export default function DoctorNotePanel({
         body: JSON.stringify({ fullNoteText: noteText, status: "confirmed" }),
       });
       setIsConfirmed(true);
-      onStatusChange("confirmed");
+      onStatusChange();
     } catch (err) {
       console.error("Failed to confirm note:", err);
     } finally {

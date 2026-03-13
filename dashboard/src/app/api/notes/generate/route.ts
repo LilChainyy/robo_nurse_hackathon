@@ -23,20 +23,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No completed intake session found" }, { status: 404 });
   }
 
-  const note = await generateDoctorNote(
-    intake.clinicalSummary || "",
-    relay?.relayTranscript || [],
-    patient.name,
-    patient.language
-  );
+  try {
+    // Use relay session transcript if available, otherwise fall back to
+    // relay transcript stored on the intake session (from live video call)
+    const relayTranscript = relay?.relayTranscript?.length
+      ? relay.relayTranscript
+      : intake.relayTranscript || [];
 
-  const prescription = upsertPrescription({
-    patientId,
-    intakeSessionId: intake._id,
-    relaySessionId: relay?._id,
-    ...note,
-    status: "draft",
-  });
+    const note = await generateDoctorNote(
+      intake.clinicalSummary || "",
+      relayTranscript,
+      patient.name,
+      patient.language
+    );
 
-  return NextResponse.json({ prescription });
+    const prescription = upsertPrescription({
+      patientId,
+      intakeSessionId: intake._id,
+      relaySessionId: relay?._id,
+      ...note,
+      status: "draft",
+    });
+
+    return NextResponse.json({ prescription });
+  } catch (err: any) {
+    console.error("Doctor note generation failed:", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to generate doctor note" },
+      { status: 500 }
+    );
+  }
 }

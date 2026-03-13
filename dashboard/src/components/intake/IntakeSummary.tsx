@@ -40,6 +40,7 @@ export default function IntakeSummary({ patient, session, isLoading }: IntakeSum
           language={patient.language}
           age={patient.age}
           country={patient.country}
+          zipcode={session.zipcode}
         />
         <UrgencyBadge level={session.urgencyLevel || "medium"} />
       </div>

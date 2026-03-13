@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function generateDoctorNote(
@@ -26,13 +26,17 @@ export async function generateDoctorNote(
           .join("\n")
       : "No doctor-patient consultation transcript available yet.";
 
-  const msg = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+  const response = await client.chat.completions.create({
+    model: "gpt-4o-mini",
     max_tokens: 1000,
     messages: [
       {
+        role: "system",
+        content: "You are a medical AI assistant helping generate structured doctor notes. Always respond with valid JSON only, no markdown.",
+      },
+      {
         role: "user",
-        content: `You are a medical AI assistant helping generate a doctor note. Based on the following patient intake data and doctor-patient consultation transcript, generate a structured doctor note.
+        content: `Based on the following patient intake data and doctor-patient consultation transcript, generate a structured doctor note.
 
 PATIENT: ${patientName} (Language: ${patientLanguage})
 
@@ -56,12 +60,13 @@ Be professional and concise. Use clinical language appropriate for a medical rec
     ],
   });
 
-  const text = msg.content[0].type === "text" ? msg.content[0].text : "";
+  const text = response.choices[0]?.message?.content || "";
 
   try {
-    return JSON.parse(text);
+    // Strip markdown code fences if present
+    const cleaned = text.replace(/```json\s*\n?/g, "").replace(/```\s*$/g, "").trim();
+    return JSON.parse(cleaned);
   } catch {
-    // If Claude didn't return valid JSON, wrap the text
     return {
       diagnosis: "",
       prescribedMedications: [],

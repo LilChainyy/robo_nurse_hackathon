@@ -13,6 +13,7 @@ export function useWebRTC(roomId: string | null) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [isMuted, setIsMuted] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
 
   // Clean up on unmount
   useEffect(() => {
@@ -27,8 +28,11 @@ export function useWebRTC(roomId: string | null) {
     setStatus("connecting");
 
     try {
-      // Get local audio stream (doctor's mic)
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      // Get local video + audio stream (doctor's webcam & mic)
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: { width: { ideal: 640 }, height: { ideal: 480 } },
+      });
       setLocalStream(stream);
 
       // Join the signaling room
@@ -102,6 +106,7 @@ export function useWebRTC(roomId: string | null) {
     }
     setRemoteStream(null);
     setStatus("disconnected");
+    setIsCameraOff(false);
   }, [localStream, roomId, emit]);
 
   const toggleMute = useCallback(() => {
@@ -114,12 +119,25 @@ export function useWebRTC(roomId: string | null) {
     }
   }, [localStream]);
 
+  const toggleCamera = useCallback(() => {
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsCameraOff(!videoTrack.enabled);
+      }
+    }
+  }, [localStream]);
+
   return {
+    localStream,
     remoteStream,
     status,
     isMuted,
+    isCameraOff,
     connect,
     disconnect,
     toggleMute,
+    toggleCamera,
   };
 }

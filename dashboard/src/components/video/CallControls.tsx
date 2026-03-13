@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, PhoneOff, Mic, MicOff } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, VideoIcon, VideoOff } from "lucide-react";
 import clsx from "clsx";
 
 type ConnectionStatus = "disconnected" | "connecting" | "connected";
@@ -8,12 +8,22 @@ type ConnectionStatus = "disconnected" | "connecting" | "connected";
 interface CallControlsProps {
   status: ConnectionStatus;
   isMuted: boolean;
+  isCameraOff: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
   onToggleMute: () => void;
+  onToggleCamera: () => void;
 }
 
-export default function CallControls({ status, isMuted, onConnect, onDisconnect, onToggleMute }: CallControlsProps) {
+export default function CallControls({
+  status,
+  isMuted,
+  isCameraOff,
+  onConnect,
+  onDisconnect,
+  onToggleMute,
+  onToggleCamera,
+}: CallControlsProps) {
   return (
     <div className="flex items-center justify-between">
       {/* Status indicator */}
@@ -31,15 +41,32 @@ export default function CallControls({ status, isMuted, onConnect, onDisconnect,
       {/* Controls */}
       <div className="flex items-center gap-2">
         {status === "connected" && (
-          <button
-            onClick={onToggleMute}
-            className={clsx(
-              "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
-              isMuted ? "bg-red-100 text-red-600 hover:bg-red-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            )}
-          >
-            {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </button>
+          <>
+            <button
+              onClick={onToggleMute}
+              className={clsx(
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                isMuted
+                  ? "bg-red-100 text-red-600 hover:bg-red-200"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              )}
+              title={isMuted ? "Unmute" : "Mute"}
+            >
+              {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={onToggleCamera}
+              className={clsx(
+                "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+                isCameraOff
+                  ? "bg-red-100 text-red-600 hover:bg-red-200"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              )}
+              title={isCameraOff ? "Turn camera on" : "Turn camera off"}
+            >
+              {isCameraOff ? <VideoOff className="h-4 w-4" /> : <VideoIcon className="h-4 w-4" />}
+            </button>
+          </>
         )}
 
         {status === "disconnected" ? (

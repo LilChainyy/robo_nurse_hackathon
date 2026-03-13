@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import DashboardShell from "@/components/layout/DashboardShell";
 import PanelCard from "@/components/layout/PanelCard";
 import IntakeSummary from "@/components/intake/IntakeSummary";
@@ -12,13 +11,11 @@ import { ClipboardList, Video, FileText, DollarSign } from "lucide-react";
 
 export default function Dashboard() {
   const { patient, intakeSession, relaySession, prescription, isLoading, mutate } = usePatientData();
-  const [noteStatus, setNoteStatus] = useState<"draft" | "confirmed">("draft");
+
+  const noteConfirmed = prescription?.status === "confirmed";
 
   return (
-    <DashboardShell
-      patientName={patient?.name}
-      patientLanguage={patient?.language}
-    >
+    <DashboardShell>
       {/* Top Left: Patient Intake Summary */}
       <PanelCard title="Patient Intake Summary" icon={<ClipboardList className="h-4 w-4" />}>
         <IntakeSummary
@@ -40,10 +37,7 @@ export default function Dashboard() {
           intakeSession={intakeSession}
           relaySession={relaySession}
           prescription={prescription}
-          onStatusChange={(status) => {
-            setNoteStatus(status);
-            mutate();
-          }}
+          onStatusChange={() => mutate()}
         />
       </PanelCard>
 
@@ -51,7 +45,8 @@ export default function Dashboard() {
       <PanelCard title="Medicine Price Lookup" icon={<DollarSign className="h-4 w-4" />}>
         <PriceLookupPanel
           prescription={prescription}
-          noteConfirmed={noteStatus === "confirmed" || prescription?.status === "confirmed"}
+          intakeSession={intakeSession}
+          noteConfirmed={noteConfirmed}
           onLookupComplete={() => mutate()}
         />
       </PanelCard>

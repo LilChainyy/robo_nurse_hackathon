@@ -4,7 +4,11 @@ import { Server } from "socket.io";
 const httpServer = createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      process.env.FRONTEND_URL || "",
+    ].filter(Boolean),
     methods: ["GET", "POST"],
   },
 });
@@ -78,7 +82,7 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = 3001;
-httpServer.listen(PORT, () => {
-  console.log(`[Signaling] Server running on http://localhost:${PORT}`);
+const PORT = parseInt(process.env.PORT || "3001", 10);
+httpServer.listen(PORT, "0.0.0.0", () => {
+  console.log(`[Signaling] Server running on port ${PORT}`);
 });

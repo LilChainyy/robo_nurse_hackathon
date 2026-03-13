@@ -5,11 +5,9 @@ import { Activity } from "lucide-react";
 
 interface DashboardShellProps {
   children: ReactNode;
-  patientName?: string;
-  patientLanguage?: string;
 }
 
-export default function DashboardShell({ children, patientName, patientLanguage }: DashboardShellProps) {
+export default function DashboardShell({ children }: DashboardShellProps) {
   return (
     <div className="flex h-screen flex-col bg-gray-50">
       {/* Header */}
@@ -24,19 +22,15 @@ export default function DashboardShell({ children, patientName, patientLanguage 
           </div>
         </div>
 
-        {patientName && (
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">{patientName}</p>
-              <p className="text-xs text-gray-500">{patientLanguage}</p>
-            </div>
-            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-sm font-semibold text-blue-700">
-                {patientName.charAt(0).toUpperCase()}
-              </span>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-sm font-medium text-gray-900">Dr. Walker, MD</p>
+            <p className="text-xs text-gray-500">Massachusetts General Hospital</p>
           </div>
-        )}
+          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <span className="text-sm font-semibold text-blue-700">W</span>
+          </div>
+        </div>
       </header>
 
       {/* 2x2 Grid */}

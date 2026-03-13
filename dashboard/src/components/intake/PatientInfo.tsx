@@ -1,15 +1,16 @@
 "use client";
 
-import { User, Globe, Calendar } from "lucide-react";
+import { User, Globe, Calendar, MapPin } from "lucide-react";
 
 interface PatientInfoProps {
   name: string;
   language: string;
   age?: number;
   country?: string;
+  zipcode?: string;
 }
 
-export default function PatientInfo({ name, language, age, country }: PatientInfoProps) {
+export default function PatientInfo({ name, language, age, country, zipcode }: PatientInfoProps) {
   return (
     <div className="flex items-start gap-3 mb-4">
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 flex-shrink-0">
@@ -29,6 +30,12 @@ export default function PatientInfo({ name, language, age, country }: PatientInf
             </span>
           )}
           {country && <span>{country}</span>}
+          {zipcode && (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {zipcode}
+            </span>
+          )}
         </div>
       </div>
     </div>

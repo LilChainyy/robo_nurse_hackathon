@@ -165,7 +165,7 @@ async def main():
             ping_timeout=20,
             close_timeout=10,
         ) as ws:
-            print(f"[{time.time()-t0:.3f}s] Connected! ws.open={ws.open}")
+            print(f"[{time.time()-t0:.3f}s] Connected!")
 
             total_chunks = (len(pcm_data) + 4095) // 4096
             print(f"[{time.time()-t0:.3f}s] Sending {total_chunks} chunks of 4096 bytes with 50ms pacing...")
@@ -213,8 +213,9 @@ async def main():
             except Exception as e:
                 print(f"[{time.time()-t0:.3f}s] UNEXPECTED ERROR: {type(e).__name__}: {e}")
 
-    except websockets.exceptions.InvalidStatusCode as e:
-        print(f"WS connection rejected: HTTP {e.status_code}")
+    except Exception as e:
+        if "InvalidStatus" in type(e).__name__ or "InvalidStatusCode" in type(e).__name__:
+            print(f"WS connection rejected: {e}")
     except Exception as e:
         print(f"FATAL ERROR: {type(e).__name__}: {e}")
         import traceback

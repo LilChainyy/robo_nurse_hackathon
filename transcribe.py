@@ -19,7 +19,7 @@ API_KEY = os.getenv("SMALLEST_API_KEY")
 SAMPLE_RATE = 44100
 TRANSCRIPT_FILE = os.path.join(os.path.dirname(__file__), "transcripts.json")
 
-LANGUAGES = {"e": "en", "s": "es"}
+LANGUAGE = "en"
 
 
 def find_input_device():
@@ -208,18 +208,15 @@ async def main():
     print(f"Mic: {mic_name} @ {SAMPLE_RATE}Hz")
 
     while True:
-        print("\nLanguage: [e] English  [s] Spanish")
+        await record_once(mic_idx, LANGUAGE)
+        print("--- Press [r] to record again, [q] to quit ---")
         while True:
             ch = get_key()
-            if ch in LANGUAGES:
-                language = LANGUAGES[ch]
+            if ch == "r":
                 break
             if ch in ("\x03", "q"):
                 print("\nDone.")
                 return
-        print(f"  -> {language}")
-        await record_once(mic_idx, language)
-        print("--- Record again or quit? (loops back to language select) ---")
 
 
 if __name__ == "__main__":
